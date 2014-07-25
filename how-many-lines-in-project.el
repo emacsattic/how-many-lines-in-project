@@ -1,13 +1,12 @@
-;;; how-many-lines-in-project.el --- Calculate how many lines are
-;;; there in your project.
+;;; how-many-lines-in-project.el --- Calculate how many lines are there in your project.
 
-;; Copyright (C) 2014 Wei Zhao <kaihaosw@gmail.com>
-;; Author: Wei Zhao
+;; Copyright (C) 2014 Wei Zhao
+;; Author: Wei Zhao <kaihaosw@gmail.com>
 ;; Git: https://github.com/kaihaosw/how-many-lines-in-project.git
-;; Version: 0.1
+;; Version: 0.2
 ;; Created: 2014-07-24
 ;; Keywords: project, convenience
-;; Package-Requires:((find-file-in-project 3.3))
+;; Package-Requires:((find-file-in-project "3.3"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -57,6 +56,7 @@
                              files)))
     (mapcar* #'list (setcdr (last file-names) file-names) file-lines)))
 
+;;;###autoload
 (defun how-many-lines-in-project ()
   "Calculate how many lines are there in your project."
   (interactive)

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014 Wei Zhao
 ;; Author: Wei Zhao <kaihaosw@gmail.com>
 ;; Git: https://github.com/kaihaosw/how-many-lines-in-project.git
-;; Version: 0.2
+;; Version: 0.3
 ;; Created: 2014-07-24
 ;; Keywords: project, convenience
 ;; Package-Requires:((find-file-in-project "3.3"))
@@ -44,7 +44,6 @@
 ;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
 ;;     (setq ffip-patterns (append '("*.scm" "*.ss") ffip-patterns))))
 ;; or
-;; (require 'how-many-lines-in-project)
 ;; (eval-after-load 'how-many-lines-in-project
 ;;   (progn
 ;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
@@ -58,26 +57,20 @@
   "*hm-lines*")
 
 (defun how-many-lines-in-project-list ()
-  "Return a list which contains file-names and file-lines."
-  (let* ((project-files (ffip-project-files))
-         (file-names (mapcar 'car project-files))
-         (files (mapcar 'cdr project-files))
-         (file-lines (mapcar (lambda (x)
-                               (replace-regexp-in-string
-                                "\n" "" (shell-command-to-string
-                                         (concat "wc -l " x " | awk '{print $1}'"))))
-                             files)))
-    (mapcar* #'list (setcdr (last file-names) file-names) file-lines)))
+  "Return a list which contains file-line and file-name."
+  (mapcar (lambda (l) (cons (string-to-number
+                        (replace-regexp-in-string
+                         "\n" "" (shell-command-to-string
+                                  (concat "wc -l " (cdr l) " | awk '{print $1}'")))) l))
+          (ffip-project-files)))
 
 ;;;###autoload
 (defun how-many-lines-in-project ()
   "Calculate how many lines are there in your project."
   (interactive)
   (let* ((fll (how-many-lines-in-project-list))
-         (names (mapcar 'car fll))
-         (lines (mapcar 'string-to-number (mapcar 'cadr fll)))
-         (name-length (apply 'max (mapcar 'length names)))
-         (total-lines (apply '+ lines)))
+         (name-length (apply 'max (mapcar (lambda (x) (length x)) (mapcar 'cadr fll))))
+         (total-lines (apply '+ (mapcar 'car fll))))
     (get-buffer-create how-many-lines-in-project-buffer-name)
     (switch-to-buffer how-many-lines-in-project-buffer-name)
     (setq buffer-read-only nil)
@@ -86,7 +79,7 @@
               (insert
                (format
                 (format "%%-%ds %%%ds lines\n" name-length 8)
-                (car x) (cadr x))))
+                (cadr x) (car x))))
             fll)
     (insert "\n-----------------------\n")
     (insert (format "total %d lines\n" total-lines))

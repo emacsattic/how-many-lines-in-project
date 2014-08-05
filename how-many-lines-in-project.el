@@ -33,9 +33,22 @@
 ;; lines in a given project.
 ;; It requires `find-file-in-project'.
 
-;; How to use
+;; Usage
 ;; (require 'how-many-lines-in-project)
 ;; M-x: how-many-lines-in-project
+
+;; You may need to config the variable `ffip-patterns' in `find-file-in-project'.
+;; For example:
+;; (eval-after-load 'find-file-in-project
+;;   (progn
+;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
+;;     (setq ffip-patterns (append '("*.scm" "*.ss") ffip-patterns))))
+;; or
+;; (require 'how-many-lines-in-project)
+;; (eval-after-load 'how-many-lines-in-project
+;;   (progn
+;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
+;;     (setq ffip-patterns (append '("*.scm" "*.ss") ffip-patterns))))
 
 ;;; Code:
 

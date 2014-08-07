@@ -3,10 +3,9 @@
 ;; Copyright (C) 2014 Wei Zhao
 ;; Author: Wei Zhao <kaihaosw@gmail.com>
 ;; Git: https://github.com/kaihaosw/how-many-lines-in-project.git
-;; Version: 0.3
+;; Version: 0.4
 ;; Created: 2014-07-24
 ;; Keywords: project, convenience
-;; Package-Requires:((find-file-in-project "3.3"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -30,64 +29,85 @@
 ;;; Commentary:
 
 ;; This library provides a method for quickly calculating how many
-;; lines in a given project.
-;; It requires `find-file-in-project'.
+;; lines in a given project. It is inspired by `find-file-in-project'.
+
+;; It depends on the command `find', `wc', `rev' and `sort'.
+;; find . -type f \( -name "*.el" -or -name "*.elc" \) -not -regex ".*/elpa/.*"
+
+;; Installation
+;; It is recommended installed by the ELPA package system.
+;; You could install it by M-x: with
+;; package-install: how-many-lines-in-project.
 
 ;; Usage
-;; (require 'how-many-lines-in-project)
 ;; M-x: how-many-lines-in-project
 
-;; You may need to config the variable `ffip-patterns' in `find-file-in-project'.
-;; For example:
-;; (eval-after-load 'find-file-in-project
-;;   (progn
-;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
-;;     (setq ffip-patterns (append '("*.scm" "*.ss") ffip-patterns))))
-;; or
-;; (eval-after-load 'how-many-lines-in-project
-;;   (progn
-;;     (setq ffip-patterns (append '("*.scala" "*.sbt") ffip-patterns))
-;;     (setq ffip-patterns (append '("*.scm" "*.ss") ffip-patterns))))
+;; There are some variables you may need to config.
+;; `hm-lines-file-extensions'
+;; `hm-lines-sort-by-type'
+;; `hm-lines-find-regex'
 
 ;;; Code:
 
-(require 'find-file-in-project)
+(defvar hm-lines-buffer-name "*hm-lines*"
+  "Buffer name to display the lines infomation.")
 
-(defvar how-many-lines-in-project-buffer-name
-  "*hm-lines*")
+(defvar hm-lines-project-file ".git")
 
-(defun how-many-lines-in-project-list ()
-  "Return a list which contains file-line and file-name."
-  (mapcar (lambda (l) (cons (string-to-number
-                        (replace-regexp-in-string
-                         "\n" "" (shell-command-to-string
-                                  (concat "wc -l " (cdr l) " | awk '{print $1}'")))) l))
-          (ffip-project-files)))
+(defvar hm-lines-file-extensions
+  '("*.el" "*.lisp" "*.scm" "*.ss" "*.rkt"
+    "*.erl" "*.hs" "*.ml" "*.sml"
+    "*.c" "*.cpp" "*.hpp" "*.cc" "*.mm"
+    "*.java" "*.scala" "*.sbt" "*.groovy" "*.clj"
+    "*.py" "*.rb" "*.js" "*.coffee" "*.pl" "*.php" "*.go" "*.lua" "*.rs"
+    "*.pas" "*.sh" "*.sql" "*.fs" "*.st" "*.R" "*.swift")
+  "List of file extensions that will be looked for.")
+
+(defvar hm-lines-find-regex ""
+  "Regex using in the find command. For example: -not -regex \".*/elpa/.*\"")
+
+(defvar hm-lines-sort-by-type nil
+  "Sort the result by type or not.")
+
+(defun hm-lines-project-root ()
+  "Find the root of a project."
+  (let ((root (locate-dominating-file default-directory hm-lines-project-file)))
+    (or root (error "no project root found."))))
+
+(defun hm-lines-result (root)
+  (let* ((find-patterns
+          (mapconcat
+           (lambda (e) (format "-name \"%s\"" e)) hm-lines-file-extensions " -or "))
+         (find-command
+          (format "find %s -type f \\( %s \\) %s %s"
+                  (substring root 0 -1)
+                  find-patterns
+                  hm-lines-find-regex
+                  (if hm-lines-sort-by-type
+                      "| rev | sort | rev" "")))
+         (find-result
+          (replace-regexp-in-string "\n" " "
+                                    (shell-command-to-string find-command))))
+    (replace-regexp-in-string (file-truename root) "   "
+                              (shell-command-to-string (concat "wc -l " find-result)))))
 
 ;;;###autoload
-(defun how-many-lines-in-project ()
+(defun hm-lines-in-project ()
   "Calculate how many lines are there in your project."
   (interactive)
-  (let* ((fll (how-many-lines-in-project-list))
-         (name-length (apply 'max (mapcar (lambda (x) (length x)) (mapcar 'cadr fll))))
-         (total-lines (apply '+ (mapcar 'car fll))))
-    (get-buffer-create how-many-lines-in-project-buffer-name)
-    (switch-to-buffer how-many-lines-in-project-buffer-name)
+  (let ((root (hm-lines-project-root)))
+    (get-buffer-create hm-lines-buffer-name)
+    (switch-to-buffer hm-lines-buffer-name)
     (setq buffer-read-only nil)
     (erase-buffer)
-    (mapcar (lambda (x)
-              (insert
-               (format
-                (format "%%-%ds %%%ds lines\n" name-length 8)
-                (cadr x) (car x))))
-            fll)
-    (insert "\n-----------------------\n")
-    (insert (format "total %d lines\n" total-lines))
+    (insert (hm-lines-result root))
     (set-buffer-modified-p nil)
     (setq buffer-read-only t)
-    (switch-to-buffer how-many-lines-in-project-buffer-name)))
+    (switch-to-buffer hm-lines-buffer-name)))
+
+;;;###autoload
+(defalias 'how-many-lines-in-project 'hm-lines-in-project)
 
 (provide 'how-many-lines-in-project)
 
 ;;; how-many-lines-in-project.el ends here
-
